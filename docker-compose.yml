@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  city-assistant-backend:
+    build: ./city-assistant-backend
+    container_name: city-assistant-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=false
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+    env_file:
+      - .env
+    volumes:
+      - ./city-assistant-backend/logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Development version with hot reload
+  city-assistant-dev:
+    build: ./city-assistant-backend
+    container_name: city-assistant-dev
+    ports:
+      - "8001:8000"
+    environment:
+      - DEBUG=true
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+    env_file:
+      - .env
+    volumes:
+      - ./city-assistant-backend:/app
+      - ./city-assistant-backend/logs:/app/logs
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    restart: unless-stopped
+    profiles:
+      - dev
+
+networks:
+  default:
+    name: city-assistant-network
