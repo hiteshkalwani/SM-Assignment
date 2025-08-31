@@ -19,7 +19,7 @@ A production-ready FastAPI backend for the City Information Assistant, providing
 ### Prerequisites
 
 - Python 3.9+
-- [Poetry](https://python-poetry.org/) (recommended) or pip
+- pip
 - OpenAI API key
 - (Optional) OpenWeatherMap API key
 - (Optional) GeoDB API key
@@ -175,75 +175,95 @@ curl -X 'POST' \
 - Stream chat responses (SSE)
 
 ```bash
+curl --location 'http://localhost:8000/api/v1/chat/' \
+--header 'Content-Type: application/json' \
+--data '{
+  "messages": [
+    {"role": "user", "content": "plan my visit to tokyo?"}
+  ],
+  "stream": true
+}'
+```
+
+```bash
 curl --location 'http://localhost:8000/api/v1/chat/stream?message=plan%20my%20visit%20to%20Jamnagar' \
 --data ''
 ```
 
-## Development
-
-### Code Style
-
-This project uses:
-- **Black** for code formatting
-- **isort** for import sorting
-- **mypy** for static type checking
-- **ruff** for linting
-
-Run the following commands to ensure code quality:
-
-```bash
-# Format code
-black .
-
-# Sort imports
-isort .
-
-# Lint code
-ruff check .
-
-# Type checking
-mypy .
-```
-
-### Testing
-
-```bash
-# Run all tests
-pytest
-
-# Run tests with coverage
-pytest --cov=app --cov-report=term-missing
-```
-
 ## Deployment
 
-### Docker
+### Docker with Nginx Load Balancing
 
-The application is fully containerized for easy deployment.
+The application includes production-ready Nginx load balancing for high availability and scalability.
 
-#### Quick Start with Docker
+#### Architecture
 
-1. **Copy the environment file:**
+```
+Internet → Nginx (Port 80) → Load Balancer → Backend Service (3 Replicas)
+                                          ├── city-assistant-backend (replica 1)
+                                          ├── city-assistant-backend (replica 2)
+                                          └── city-assistant-backend (replica 3)
+```
+
+#### Quick Start with Load Balancing
+
+1. **Setup environment:**
    ```bash
-   cp .env.example .env
+   cp city-assistant-backend/.env.example city-assistant-backend/.env
    # Edit .env with your actual API keys
    ```
 
-2. **Build and run with Docker Compose:**
+2. **Deploy with load balancing:**
    ```bash
-   # Production deployment
+   # Production with 3 backend replicas + Nginx
    docker-compose up -d
 
-   # Development with hot reload
+   # Scale to different number of replicas
+   docker-compose up -d --scale city-assistant-backend=5
+
+   # Development mode (single instance, no load balancer)
    docker-compose --profile dev up -d city-assistant-dev
    ```
 
 3. **Access the application:**
-   - Production: `http://localhost:8000`
-   - Development: `http://localhost:8001`
+   - **Load Balanced API**: `http://localhost` (port 80)
+   - **Direct Development**: `http://localhost:8001`
+   - **API Documentation**: `http://localhost/docs`
 
-#### Manual Docker Commands
+#### Load Balancing Features
 
+**🔄 Load Balancing Algorithm:**
+- **Least Connections** - Routes to server with fewest active connections
+- **Health Checks** - Automatic failover for unhealthy instances
+- **Backup Server** - Fallback instance for high availability
+
+**⚡ Performance Optimizations:**
+- **Gzip Compression** - Reduces response size by ~70%
+- **Connection Pooling** - Efficient upstream connections
+- **Request Buffering** - Optimized for different endpoint types
+
+**🛡️ Security & Rate Limiting:**
+- **Rate Limiting**: 10 req/s for API, 5 req/s for streaming
+- **Security Headers**: XSS protection, content type validation
+- **CORS Support**: Configurable cross-origin requests
+
+**📊 Monitoring:**
+- **Nginx Status**: `http://localhost/nginx-status`
+- **Health Checks**: `http://localhost/health`
+- **Access Logs**: `./nginx/logs/access.log`
+
+#### Configuration Files
+
+```
+nginx/
+├── nginx.conf          # Main Nginx configuration
+├── Dockerfile          # Custom Nginx container
+└── logs/              # Nginx access and error logs
+```
+
+### Docker (Single Instance)
+
+For development or small deployments without load balancing:
 ```bash
 # Build the Docker image
 docker build -t city-assistant-backend ./city-assistant-backend
@@ -296,6 +316,42 @@ docker-compose logs -f city-assistant-backend
 
 # View development logs
 docker-compose logs -f city-assistant-dev
+```
+
+## Development
+
+### Code Style
+
+This project uses:
+- **Black** for code formatting
+- **isort** for import sorting
+- **mypy** for static type checking
+- **ruff** for linting
+
+Run the following commands to ensure code quality:
+
+```bash
+# Format code
+black .
+
+# Sort imports
+isort .
+
+# Lint code
+ruff check .
+
+# Type checking
+mypy .
+```
+
+### Testing
+
+```bash
+# Run all tests
+pytest
+
+# Run tests with coverage
+pytest --cov=app --cov-report=term-missing
 ```
 
 ## Contributing
