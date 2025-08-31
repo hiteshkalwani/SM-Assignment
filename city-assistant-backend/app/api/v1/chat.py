@@ -88,6 +88,10 @@ class ChatResponse(BaseModel):
     """Response model for chat endpoint."""
 
     message: ChatMessage = Field(..., description="The assistant's response")
+    thinking: Optional[str] = Field(
+        None,
+        description="The agent's reasoning process and what it's doing"
+    )
     usage: Dict[str, int] = Field(
         ...,
         description="Token usage information",
@@ -313,13 +317,54 @@ async def chat(
 
         # Extract tool calls if any
         tool_calls = []
+        thinking_parts = []
+        
         if "intermediate_steps" in result:
+            thinking_parts.append(f"I'm analyzing your request: '{request.messages[-1].content if request.messages else ''}'")
+            
             for step in result["intermediate_steps"]:
+                tool_name = step[0].tool if hasattr(step[0], 'tool') else "unknown"
+                tool_input = step[0].tool_input if hasattr(step[0], 'tool_input') else {}
+                tool_output = step[1] if len(step) > 1 else ""
+                
                 tool_calls.append({
-                    "tool": step[0].tool if hasattr(step[0], 'tool') else "unknown",
-                    "input": step[0].tool_input if hasattr(step[0], 'tool_input') else {},
-                    "output": step[1] if len(step) > 1 else ""
+                    "tool": tool_name,
+                    "input": tool_input,
+                    "output": tool_output
                 })
+                
+                # Add thinking for each tool call
+                if tool_name == "WeatherTool":
+                    city = tool_input.get('city', 'the city')
+                    thinking_parts.append(f"Getting current weather information for {city}")
+                elif tool_name == "TimeTool":
+                    city = tool_input.get('city', 'the city')
+                    thinking_parts.append(f"Checking the local time in {city}")
+                elif tool_name == "CityFactsTool":
+                    city = tool_input.get('city', 'the city')
+                    thinking_parts.append(f"Gathering interesting facts and information about {city}")
+                elif tool_name == "plan_city_visit":
+                    city = tool_input.get('city', 'the city')
+                    thinking_parts.append(f"Planning a comprehensive visit to {city} by combining weather, time, and city information")
+                else:
+                    thinking_parts.append(f"Using {tool_name} to gather relevant information")
+        else:
+            # No tools used, generate thinking based on the request
+            user_message = request.messages[-1].content if request.messages else ""
+            if any(word in user_message.lower() for word in ['weather', 'temperature', 'rain', 'sunny']):
+                thinking_parts.append("I notice you're asking about weather information")
+            elif any(word in user_message.lower() for word in ['time', 'clock', 'hour']):
+                thinking_parts.append("I see you want to know about the time")
+            elif any(word in user_message.lower() for word in ['visit', 'plan', 'trip', 'travel']):
+                thinking_parts.append("You're looking for travel and visit planning information")
+            else:
+                thinking_parts.append("I'm processing your request to provide helpful city information")
+
+        # Generate final thinking summary
+        if thinking_parts:
+            thinking = ". ".join(thinking_parts) + "."
+        else:
+            thinking = "I'm ready to help you with city information and planning."
 
         # Prepare the response
         return {
@@ -327,6 +372,7 @@ async def chat(
                 "role": "assistant",
                 "content": result.get("output", "I'm sorry, I couldn't process your request."),
             },
+            "thinking": thinking,
             "usage": {
                 "prompt_tokens": 0,
                 "completion_tokens": 0,
