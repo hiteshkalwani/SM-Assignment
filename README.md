@@ -68,6 +68,32 @@ A production-ready FastAPI backend for the City Information Assistant, providing
 
 ### Running the Application
 
+#### Docker Compose (Recommended)
+
+```bash
+# Start all services (backend + nginx load balancer)
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop all services
+docker-compose down
+
+# Rebuild and restart services
+docker-compose up -d --build
+
+# Scale backend replicas (default is 3)
+docker-compose up -d --scale backend=5
+
+# Development mode with live reload
+docker-compose -f docker-compose.yml -f docker-compose.override.yml up -d
+```
+
+The API will be available at `http://localhost:80` / `http://localhost` (via Nginx load balancer)
+
+#### Direct Python Development
+
 ```bash
 # Development server with auto-reload
 uvicorn app.main:app --reload
@@ -80,9 +106,9 @@ The API will be available at `http://localhost:8000`
 
 ### API Documentation
 
-- **Swagger UI**: `http://localhost:8000/docs`
-- **ReDoc**: `http://localhost:8000/redoc`
-- **OpenAPI Schema**: `http://localhost:8000/openapi.json`
+- **Swagger UI**: `http://localhost:80/docs`
+- **ReDoc**: `http://localhost:80/redoc`
+- **OpenAPI Schema**: `http://localhost:80/openapi.json`
 
 ## Project Structure
 
@@ -163,7 +189,7 @@ SM-Assignment/
 
 ```bash
 curl -X 'POST' \
-  'http://localhost:8000/api/v1/chat' \
+  'http://localhost:80/api/v1/chat' \
   -H 'Content-Type: application/json' \
   -d '{
     "messages": [
@@ -175,7 +201,7 @@ curl -X 'POST' \
 - Stream chat responses (SSE)
 
 ```bash
-curl --location 'http://localhost:8000/api/v1/chat/' \
+curl --location 'http://localhost:80/api/v1/chat/' \
 --header 'Content-Type: application/json' \
 --data '{
   "messages": [
@@ -186,7 +212,7 @@ curl --location 'http://localhost:8000/api/v1/chat/' \
 ```
 
 ```bash
-curl --location 'http://localhost:8000/api/v1/chat/stream?message=plan%20my%20visit%20to%20Jamnagar' \
+curl --location 'http://localhost:80/api/v1/chat/stream?message=plan%20my%20visit%20to%20Jamnagar' \
 --data ''
 ```
 
@@ -209,7 +235,7 @@ Internet → Nginx (Port 80) → Load Balancer → Backend Service (3 Replicas)
 
 1. **Setup environment:**
    ```bash
-   cp city-assistant-backend/.env.example city-assistant-backend/.env
+   cp .env.example .env
    # Edit .env with your actual API keys
    ```
 
