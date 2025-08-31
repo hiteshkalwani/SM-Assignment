@@ -144,7 +144,7 @@ async def process_chat_stream(
     country: Optional[str] = None,
     temperature: float = 0.7,
     max_tokens: int = 1024,
-) -> AsyncGenerator[ChatStreamResponse, None]:
+) -> AsyncGenerator[str, None]:
     """Process a chat request and yield streaming events."""
     # Initialize the Agent Executor
     llm = ChatOpenAI(
@@ -182,8 +182,9 @@ async def process_chat_stream(
 
     # Start streaming
     try:
-        # Yield start event
-        yield ChatStreamResponse.start().model_dump_json() + "\n"
+        # Yield start event in proper SSE format
+        start_event = ChatStreamResponse.start()
+        yield f"data: {start_event.model_dump_json()}\n\n"
 
         # Execute the agent (not streaming since we don't have astream implemented)
         result = await agent_executor.ainvoke(agent_input)
@@ -196,21 +197,25 @@ async def process_chat_stream(
                     "input": step[0].tool_input if hasattr(step[0], 'tool_input') else {},
                     "output": step[1] if len(step) > 1 else ""
                 }
-                yield ChatStreamResponse.tool_call(tool_call).model_dump_json() + "\n"
+                tool_event = ChatStreamResponse.tool_call(tool_call)
+                yield f"data: {tool_event.model_dump_json()}\n\n"
 
         # Stream the final output token by token to simulate streaming
         output = result.get("output", "No response generated")
         for token in output.split():
-            yield ChatStreamResponse.token(token + " ").model_dump_json() + "\n"
+            token_event = ChatStreamResponse.token(token + " ")
+            yield f"data: {token_event.model_dump_json()}\n\n"
 
         # Yield completion event
-        yield ChatStreamResponse.complete(
+        complete_event = ChatStreamResponse.complete(
             message=ChatMessage(role="assistant", content=output),
             usage={"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
-        ).model_dump_json() + "\n"
+        )
+        yield f"data: {complete_event.model_dump_json()}\n\n"
 
     except Exception as e:
-        yield ChatStreamResponse.error(str(e)).model_dump_json() + "\n"
+        error_event = ChatStreamResponse.error(str(e))
+        yield f"data: {error_event.model_dump_json()}\n\n"
 
 
 @router.post(
