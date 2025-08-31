@@ -181,12 +181,83 @@ pytest --cov=app --cov-report=term-missing
 
 ### Docker
 
+The application is fully containerized for easy deployment.
+
+#### Quick Start with Docker
+
+1. **Copy the environment file:**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your actual API keys
+   ```
+
+2. **Build and run with Docker Compose:**
+   ```bash
+   # Production deployment
+   docker-compose up -d
+
+   # Development with hot reload
+   docker-compose --profile dev up -d city-assistant-dev
+   ```
+
+3. **Access the application:**
+   - Production: `http://localhost:8000`
+   - Development: `http://localhost:8001`
+
+#### Manual Docker Commands
+
 ```bash
 # Build the Docker image
-docker build -t city-assistant-backend .
+docker build -t city-assistant-backend ./city-assistant-backend
 
 # Run the container
-docker run -p 8000:8000 --env-file .env city-assistant-backend
+docker run -d \
+  --name city-assistant \
+  -p 8000:8000 \
+  --env-file .env \
+  -v $(pwd)/logs:/app/logs \
+  city-assistant-backend
+```
+
+#### Docker Services
+
+- **city-assistant-backend**: Production service on port 8000
+- **city-assistant-dev**: Development service with hot reload on port 8001
+
+#### Environment Variables
+
+All environment variables from `.env.example` are supported:
+
+```bash
+# Required
+OPENAI_API_KEY=your_openai_api_key_here
+OPENWEATHER_API_KEY=your_openweather_api_key_here
+GEODB_API_KEY=your_geodb_api_key_here
+
+# Optional
+DEBUG=false
+ENVIRONMENT=production
+LOG_LEVEL=INFO
+SECRET_KEY=your-super-secret-key-at-least-32-characters-long
+```
+
+#### Health Checks
+
+The Docker containers include built-in health checks:
+- Endpoint: `GET /health`
+- Interval: 30 seconds
+- Timeout: 10 seconds
+
+#### Logs
+
+Container logs are mounted to `./logs` directory for persistence.
+
+```bash
+# View logs
+docker-compose logs -f city-assistant-backend
+
+# View development logs
+docker-compose logs -f city-assistant-dev
 ```
 
 ## Contributing
