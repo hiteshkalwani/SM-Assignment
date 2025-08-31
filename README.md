@@ -29,8 +29,8 @@ A production-ready FastAPI backend for the City Information Assistant, providing
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/city-assistant-backend.git
-   cd city-assistant-backend
+   git clone https://github.com/hiteshkalwani/SM-Assignment.git
+   cd SM-Assignment
    ```
 
 2. Create and activate a virtual environment:
@@ -87,29 +87,62 @@ The API will be available at `http://localhost:8000`
 ## Project Structure
 
 ```
-city-assistant-backend/
-├── app/                    # Application code
-│   ├── api/                # API layer (FastAPI routers)
-│   │   └── v1/             # API version 1
-│   │       ├── chat.py     # Chat endpoints
-│   │       └── health.py   # Health check endpoint
-│   │
-│   ├── core/               # Core application components
-│   │   ├── config.py      # Configuration management
-│   │   ├── llm.py         # LLM client wrapper
-│   │   ├── logging.py     # Logging configuration
-│   │   └── observability.py # LangSmith tracing
-│   │
-│   ├── models/            # Database models (future use)
-│   ├── tools/             # Tool implementations
-│   └── utils/             # Utility functions
+SM-Assignment/
+├── README.md                           # Main project documentation
+├── docker-compose.yml                  # Docker orchestration for the project
 │
-├── tests/                 # Unit and integration tests
-├── .env.example          # Example environment variables
-├── .gitignore
-├── poetry.lock           # Poetry lock file
-├── pyproject.toml        # Project metadata and dependencies
-└── README.md             # This file
+└── city-assistant-backend/             # Backend application directory
+    ├── Dockerfile                      # Container configuration
+    ├── .dockerignore                   # Docker build exclusions
+    ├── requirements.txt                # Python dependencies
+    ├── setup.py                       # Package setup configuration
+    ├── pytest.ini                     # Test configuration
+    ├── conftest.py                     # Shared test fixtures
+    │
+    ├── app/                            # Main application code
+    │   ├── __init__.py
+    │   ├── main.py                     # FastAPI application entry point
+    │   │
+    │   ├── agents/                     # AI agent implementations
+    │   │   ├── __init__.py
+    │   │   ├── base_agent.py           # Base agent class
+    │   │   └── city_agent.py           # City-specific agent
+    │   │
+    │   ├── api/                        # API layer (FastAPI routers)
+    │   │   ├── __init__.py
+    │   │   └── v1/                     # API version 1
+    │   │       ├── __init__.py
+    │   │       ├── router.py           # Main API router
+    │   │       ├── chat.py             # Chat endpoints
+    │   │       └── health.py           # Health check endpoint
+    │   │
+    │   ├── core/                       # Core application components
+    │   │   ├── config.py               # Configuration management
+    │   │   ├── llm.py                  # LLM client wrapper
+    │   │   ├── logging.py              # Logging configuration
+    │   │   └── observability.py        # LangSmith tracing
+    │   │
+    │   ├── tools/                      # Tool implementations
+    │   │   ├── __init__.py
+    │   │   ├── facts_tool.py           # City facts retrieval
+    │   │   ├── plan_visit_tool.py      # Visit planning tool
+    │   │   ├── time_tool.py            # Time zone information
+    │   │   └── weather_tool.py         # Weather information
+    │   │
+    │   └── utils/                      # Utility functions
+    │       ├── exceptions.py           # Custom exception classes
+    │       └── http_client.py          # HTTP client utilities
+    │
+    ├── tests/                          # Unit and integration tests
+    │   ├── conftest.py                 # Test fixtures and configuration
+    │   ├── test_agents.py              # Agent functionality tests
+    │   ├── test_api.py                 # API endpoint tests
+    │   ├── test_config.py              # Configuration tests
+    │   ├── test_exceptions.py          # Exception handling tests
+    │   ├── test_integration.py         # End-to-end integration tests
+    │   └── test_tools.py               # Tool implementation tests
+    │
+    └── logs/                           # Application logs directory
 ```
 
 ## API Endpoints
@@ -117,6 +150,7 @@ city-assistant-backend/
 ### Health Check
 
 - `GET /health` - Check the health status of the service and its dependencies
+- `GET /docs` - Swagger UI
 
 ### Chat
 
@@ -124,6 +158,8 @@ city-assistant-backend/
 - `GET /api/v1/chat/stream` - Stream chat responses (SSE)
 
 ### Example Request
+
+- Chat with the City Information Assistant
 
 ```bash
 curl -X 'POST' \
@@ -133,12 +169,14 @@ curl -X 'POST' \
     "messages": [
       {"role": "user", "content": "What\'s the weather like in London?"}
     ],
-    "city": "London",
-    "country": "UK",
-    "temperature": 0.7,
-    "max_tokens": 500,
-    "stream": false
   }'
+```
+
+- Stream chat responses (SSE)
+
+```bash
+curl --location 'http://localhost:8000/api/v1/chat/stream?message=plan%20my%20visit%20to%20Jamnagar' \
+--data ''
 ```
 
 ## Development
