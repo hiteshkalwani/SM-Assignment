@@ -45,7 +45,10 @@ class ChatRequest(BaseModel):
         description="The conversation history",
         min_items=1,
     )
-    city: str = Field(..., description="The city to get information about")
+    city: Optional[str] = Field(
+        None,
+        description="The city to get information about",
+    )
     country: Optional[str] = Field(
         None,
         description="Optional country to disambiguate the city",
@@ -140,7 +143,7 @@ class ChatStreamResponse(BaseModel):
 
 async def process_chat_stream(
     messages: List[Dict[str, str]],
-    city: str,
+    city: Optional[str] = None,
     country: Optional[str] = None,
     temperature: float = 0.7,
     max_tokens: int = 1024,
@@ -154,9 +157,15 @@ async def process_chat_stream(
     )
     tools = [WeatherTool(), TimeTool(), CityFactsTool(), PlanMyCityVisitTool()]
 
+    # Create system message based on whether city is provided
+    if city:
+        system_message = f"You are a helpful City Information Assistant for {city}{', ' + country if country else ''}. Use the available tools to provide accurate information about weather, time, city facts, and comprehensive visit planning."
+    else:
+        system_message = "You are a helpful City Information Assistant. Extract city information from user messages and use the available tools to provide accurate information about weather, time, city facts, and comprehensive visit planning for any mentioned cities."
+
     # Create a simple prompt template
     prompt = ChatPromptTemplate.from_messages([
-        ("system", f"You are a helpful City Information Assistant for {city}{', ' + country if country else ''}. Use the available tools to provide accurate information about weather, time, city facts, and comprehensive visit planning."),
+        ("system", system_message),
         MessagesPlaceholder(variable_name="chat_history"),
         ("human", "{input}"),
         MessagesPlaceholder(variable_name="agent_scratchpad"),
@@ -267,9 +276,15 @@ async def chat(
         )
         tools = [WeatherTool(), TimeTool(), CityFactsTool(), PlanMyCityVisitTool()]
 
+        # Create system message based on whether city is provided
+        if request.city:
+            system_message = f"You are a helpful City Information Assistant for {request.city}{', ' + request.country if request.country else ''}. Use the available tools to provide accurate information about weather, time, city facts, and comprehensive visit planning."
+        else:
+            system_message = "You are a helpful City Information Assistant. Extract city information from user messages and use the available tools to provide accurate information about weather, time, city facts, and comprehensive visit planning for any mentioned cities."
+
         # Create a simple prompt template
         prompt = ChatPromptTemplate.from_messages([
-            ("system", f"You are a helpful City Information Assistant for {request.city}{', ' + request.country if request.country else ''}. Use the available tools to provide accurate information about weather, time, city facts, and comprehensive visit planning."),
+            ("system", system_message),
             MessagesPlaceholder(variable_name="chat_history"),
             ("human", "{input}"),
             MessagesPlaceholder(variable_name="agent_scratchpad"),
@@ -331,7 +346,7 @@ async def chat(
 async def chat_stream(
     request: Request,
     message: str,
-    city: str,
+    city: Optional[str] = None,
     country: Optional[str] = None,
 ) -> StreamingResponse:
     """

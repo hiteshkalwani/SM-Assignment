@@ -6,10 +6,9 @@ This module handles loading and validating configuration settings from environme
 
 import logging
 from functools import lru_cache
-from typing import Any, List, Optional, Union
+from typing import List, Optional, Union
 
-from pydantic import AnyHttpUrl, Field, PostgresDsn, field_validator
-from pydantic_core.core_schema import ValidationInfo
+from pydantic import AnyHttpUrl, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -18,32 +17,34 @@ class Settings(BaseSettings):
 
     # Application settings
     APP_NAME: str = "City Information Assistant"
-    DEBUG: bool = False
-    ENVIRONMENT: str = "production"
-    LOG_LEVEL: str = "INFO"
+    DEBUG: bool = Field(False, env="DEBUG")
+    ENVIRONMENT: str = Field("production", env="ENVIRONMENT")
+    LOG_LEVEL: str = Field("INFO", env="LOG_LEVEL")
     SECRET_KEY: str = Field(
         default="change-this-in-production-using-.env-file",
         min_length=32,
         max_length=64,
+        env="SECRET_KEY"
     )
 
     # API settings
     API_V1_STR: str = "/api/v1"
     PROJECT_NAME: str = "City Information Assistant API"
-    SERVER_NAME: str = "city-info-api"
-    SERVER_HOST: AnyHttpUrl = "http://localhost:8000"  # type: ignore
 
     # CORS settings
-    BACKEND_CORS_ORIGINS: List[Union[str, AnyHttpUrl]] = ["http://localhost:3000"]
+    BACKEND_CORS_ORIGINS: List[Union[str, AnyHttpUrl]] = Field(
+        default=["http://localhost:3000"],
+        env="BACKEND_CORS_ORIGINS"
+    )
 
     # Security
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(11520, env="ACCESS_TOKEN_EXPIRE_MINUTES")  # 8 days
 
     # OpenAI settings
     OPENAI_API_KEY: str = Field(..., env="OPENAI_API_KEY")
-    OPENAI_MODEL: str = "gpt-3.5-turbo"
-    OPENAI_TEMPERATURE: float = 0.2
-    OPENAI_MAX_TOKENS: int = 1024
+    OPENAI_MODEL: str = Field("gpt-3.5-turbo", env="OPENAI_MODEL")
+    OPENAI_TEMPERATURE: float = Field(0.2, env="OPENAI_TEMPERATURE")
+    OPENAI_MAX_TOKENS: int = Field(1024, env="OPENAI_MAX_TOKENS")
 
     # API Keys for external services
     OPENWEATHER_API_KEY: Optional[str] = Field(None, env="OPENWEATHER_API_KEY")
@@ -58,21 +59,16 @@ class Settings(BaseSettings):
         env="LANGCHAIN_ENDPOINT"
     )
 
-    # GeoDB API settings
-    GEODB_API_HOST: str = "wft-geo-db.p.rapidapi.com"
-
-    # OpenWeatherMap API settings
-    OPENWEATHER_API_URL: str = "https://api.openweathermap.org/data/2.5/weather"
-
-    # WorldTimeAPI settings
-    WORLDTIME_API_URL: str = "http://worldtimeapi.org/api/timezone"
-
-    # Database settings (for future use)
-    POSTGRES_SERVER: str = "localhost"
-    POSTGRES_USER: str = "postgres"
-    POSTGRES_PASSWORD: str = ""
-    POSTGRES_DB: str = "city_assistant"
-    SQLALCHEMY_DATABASE_URI: Optional[PostgresDsn] = None
+    # External API endpoints
+    GEODB_API_HOST: str = Field("wft-geo-db.p.rapidapi.com", env="GEODB_API_HOST")
+    OPENWEATHER_API_URL: str = Field(
+        "https://api.openweathermap.org/data/2.5/weather", 
+        env="OPENWEATHER_API_URL"
+    )
+    WORLDTIME_API_URL: str = Field(
+        "http://worldtimeapi.org/api/timezone", 
+        env="WORLDTIME_API_URL"
+    )
 
     # Model configuration
     model_config = SettingsConfigDict(
@@ -93,24 +89,6 @@ class Settings(BaseSettings):
         elif isinstance(v, (list, str)):
             return v
         raise ValueError(v)
-
-    @field_validator("SQLALCHEMY_DATABASE_URI", mode="before")
-    @classmethod
-    def assemble_db_connection(
-        cls, v: Optional[str], info: ValidationInfo
-    ) -> Any:
-        """Assemble database connection string."""
-        if isinstance(v, str):
-            return v
-
-        values = info.data
-        return PostgresDsn.build(
-            scheme="postgresql+asyncpg",
-            username=values.get("POSTGRES_USER"),
-            password=values.get("POSTGRES_PASSWORD"),
-            host=values.get("POSTGRES_SERVER"),
-            path=f"{values.get('POSTGRES_DB') or ''}",
-        )
 
     @field_validator("LOG_LEVEL")
     @classmethod
