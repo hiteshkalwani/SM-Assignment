@@ -94,12 +94,25 @@ def create_application() -> FastAPI:
         """Handle request validation errors."""
         logger.error(f"Request validation error: {exc.errors()}")
 
+        # Convert error details to JSON-serializable format
+        errors = []
+        for error in exc.errors():
+            serializable_error = {}
+            for key, value in error.items():
+                if isinstance(value, bytes):
+                    serializable_error[key] = value.decode('utf-8', errors='replace')
+                elif hasattr(value, '__dict__'):
+                    serializable_error[key] = str(value)
+                else:
+                    serializable_error[key] = value
+            errors.append(serializable_error)
+
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             content=ErrorResponse(
                 error="Validation Error",
                 code="validation_error",
-                details={"errors": exc.errors()},
+                details={"errors": errors},
             ).model_dump(),
         )
 
