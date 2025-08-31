@@ -132,16 +132,16 @@ class TestChatEndpoint:
         assert response.status_code == 422  # Validation error
 
     def test_chat_endpoint_missing_city(self, client):
-        """Test chat endpoint without city parameter."""
+        """Test chat endpoint without city parameter - should succeed as city is optional."""
         chat_request = {
             "messages": [
                 {"role": "user", "content": "Hello"}
             ]
-            # Missing city field
+            # Missing city field - but it's optional now
         }
 
         response = client.post("/api/v1/chat", json=chat_request)
-        assert response.status_code == 422  # Validation error
+        assert response.status_code == 200  # Should succeed as city is optional
 
     def test_chat_stream_endpoint(self, client):
         """Test streaming chat endpoint."""
@@ -229,17 +229,17 @@ class TestChatEndpoint:
 
     def test_chat_stream_missing_parameters(self, client):
         """Test streaming endpoint with missing parameters."""
-        # Missing message
+        # Missing message - should return 422 as message is required
         response = client.get("/api/v1/chat/stream", params={
             "city": "London"
         })
         assert response.status_code == 422
 
-        # Missing city
+        # Missing city is now OK since city is optional
         response = client.get("/api/v1/chat/stream", params={
             "message": "Test message"
         })
-        assert response.status_code == 422
+        assert response.status_code == 200  # Should succeed as city is optional
 
 
 class TestRootEndpoints:
