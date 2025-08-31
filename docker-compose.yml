@@ -1,11 +1,25 @@
 version: '3.8'
 
 services:
+  # Nginx Load Balancer
+  nginx:
+    image: nginx:alpine
+    container_name: city-assistant-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/logs:/var/log/nginx
+    depends_on:
+      - city-assistant-backend
+    restart: unless-stopped
+    networks:
+      - city-assistant-network
+
+  # Backend Service with Replicas
   city-assistant-backend:
     build: ./city-assistant-backend
-    container_name: city-assistant-backend
-    ports:
-      - "8000:8000"
     environment:
       - DEBUG=false
       - ENVIRONMENT=production
@@ -21,6 +35,10 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    networks:
+      - city-assistant-network
+    deploy:
+      replicas: 3
 
   # Development version with hot reload
   city-assistant-dev:
@@ -39,9 +57,11 @@ services:
       - ./city-assistant-backend/logs:/app/logs
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     restart: unless-stopped
+    networks:
+      - city-assistant-network
     profiles:
       - dev
 
 networks:
-  default:
-    name: city-assistant-network
+  city-assistant-network:
+    driver: bridge
