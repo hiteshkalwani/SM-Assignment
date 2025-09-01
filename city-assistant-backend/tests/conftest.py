@@ -334,6 +334,11 @@ def mock_settings():
             'OPENWEATHER_API_KEY': 'test-weather-key',
             'GEODB_API_KEY': 'test-geodb-key',
             'LANGCHAIN_API_KEY': 'test-langchain-key',
+            'REDIS_HOST': 'localhost',
+            'REDIS_PORT': '6379',
+            'REDIS_DB': '0',
+            'REDIS_PASSWORD': '',
+            'CACHE_ENABLED': 'false',
             'DEBUG': 'true',
             'ENVIRONMENT': 'test'
         }):
@@ -342,6 +347,7 @@ def mock_settings():
         # Return a mock settings object if import fails
         mock_settings = MagicMock()
         mock_settings.OPENAI_API_KEY = 'test-openai-key'
+        mock_settings.CACHE_ENABLED = False
         mock_settings.DEBUG = True
         mock_settings.ENVIRONMENT = 'test'
         return mock_settings

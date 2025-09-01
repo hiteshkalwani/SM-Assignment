@@ -6,17 +6,29 @@ including health checks, chat functionality, edge cases, and error scenarios.
 """
 
 import pytest
-import json
-import asyncio
 import sys
 from pathlib import Path
-from unittest.mock import patch, AsyncMock, MagicMock
 from fastapi.testclient import TestClient
+from unittest.mock import patch
 
 # Add the parent directory to Python path to import app modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from app.main import app
+# Mock environment variables before importing app
+with patch.dict('os.environ', {
+    'OPENAI_API_KEY': 'test-openai-key',
+    'OPENWEATHER_API_KEY': 'test-weather-key',
+    'GEODB_API_KEY': 'test-geodb-key',
+    'LANGCHAIN_API_KEY': 'test-langchain-key',
+    'REDIS_HOST': 'localhost',
+    'REDIS_PORT': '6379',
+    'REDIS_DB': '0',
+    'REDIS_PASSWORD': '',
+    'CACHE_ENABLED': 'false',
+    'DEBUG': 'true',
+    'ENVIRONMENT': 'test'
+}):
+    from app.main import app
 
 
 @pytest.fixture
