@@ -97,7 +97,7 @@ class RedisClient:
             await redis_client.setex(key, ttl, serialized_value)
             logger.debug(f"Cached value for key: {key} with TTL: {ttl}")
             return True
-        except (ConnectionError, RedisError, json.JSONEncodeError) as e:
+        except (ConnectionError, RedisError, json.JSONDecodeError) as e:
             logger.error(f"Failed to set cache for key {key}: {e}")
             return False
 

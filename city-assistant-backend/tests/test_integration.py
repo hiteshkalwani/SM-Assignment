@@ -11,16 +11,29 @@ import sys
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi.testclient import TestClient
-from typing import Dict, Any
 
 # Add the parent directory to Python path to import app modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from app.main import app
-from app.agents.city_agent import CityInformationAgent
-from app.tools.weather_tool import WeatherTool
-from app.tools.time_tool import TimeTool
-from app.tools.facts_tool import CityFactsTool
+# Mock environment variables before importing app
+with patch.dict('os.environ', {
+    'OPENAI_API_KEY': 'test-openai-key',
+    'OPENWEATHER_API_KEY': 'test-weather-key',
+    'GEODB_API_KEY': 'test-geodb-key',
+    'LANGCHAIN_API_KEY': 'test-langchain-key',
+    'REDIS_HOST': 'localhost',
+    'REDIS_PORT': '6379',
+    'REDIS_DB': '0',
+    'REDIS_PASSWORD': '',
+    'CACHE_ENABLED': 'false',
+    'DEBUG': 'true',
+    'ENVIRONMENT': 'test'
+}):
+    from app.main import app
+    from app.agents.city_agent import CityInformationAgent
+    from app.tools.weather_tool import WeatherTool
+    from app.tools.time_tool import TimeTool
+    from app.tools.facts_tool import CityFactsTool
 
 
 @pytest.fixture
