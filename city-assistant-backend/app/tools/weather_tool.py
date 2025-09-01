@@ -12,6 +12,7 @@ from loguru import logger
 from pydantic import BaseModel, Field
 
 from app.core.config import settings
+from app.core.cache_decorator import cache_api_call
 from app.utils.exceptions import ExternalAPIError, ToolExecutionError
 from app.utils.http_client import HTTPClient
 
@@ -115,6 +116,7 @@ class WeatherTool(BaseTool):
             visibility=10000,
         )
 
+    @cache_api_call(ttl=1800, key_prefix="weather")  # Cache for 30 minutes
     async def _arun(
         self,
         city: str,

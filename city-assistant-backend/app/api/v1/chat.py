@@ -272,11 +272,17 @@ async def chat(
 
     # Handle non-streaming requests
     try:
-        # Initialize the Agent Executor
+        # Initialize the Agent Executor with callback for token tracking
+        from langchain_community.callbacks import OpenAICallbackHandler
+        
+        # Create callback handler to track tokens
+        callback_handler = OpenAICallbackHandler()
+        
         llm = ChatOpenAI(
             model=settings.OPENAI_MODEL,
             max_tokens=request.max_tokens or 1024,
-            temperature=request.temperature or 0.7
+            temperature=request.temperature or 0.7,
+            callbacks=[callback_handler]  # Add callback to LLM
         )
         tools = [WeatherTool(), TimeTool(), CityFactsTool(), PlanMyCityVisitTool()]
 
@@ -314,6 +320,13 @@ async def chat(
 
         # Call the agent
         result = await agent_executor.ainvoke(agent_input)
+        
+        # Extract token usage from callback
+        usage_info = {
+            "prompt_tokens": callback_handler.prompt_tokens,
+            "completion_tokens": callback_handler.completion_tokens,
+            "total_tokens": callback_handler.total_tokens,
+        }
 
         # Extract tool calls if any
         tool_calls = []
@@ -373,11 +386,7 @@ async def chat(
                 "content": result.get("output", "I'm sorry, I couldn't process your request."),
             },
             "thinking": thinking,
-            "usage": {
-                "prompt_tokens": 0,
-                "completion_tokens": 0,
-                "total_tokens": 0,
-            },
+            "usage": usage_info,
             "tool_calls": tool_calls if tool_calls else None,
         }
 

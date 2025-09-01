@@ -12,6 +12,7 @@ from langchain_core.tools import BaseTool
 from loguru import logger
 from pydantic import BaseModel, Field
 
+from app.core.cache_decorator import cache_api_call
 from app.utils.exceptions import ExternalAPIError, ToolExecutionError
 from app.utils.http_client import HTTPClient
 
@@ -161,6 +162,7 @@ class TimeTool(BaseTool):
             is_dst=False,
         )
     
+    @cache_api_call(ttl=300, key_prefix="time")  # Cache for 5 minutes
     async def _arun(
         self,
         city: str,

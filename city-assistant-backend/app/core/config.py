@@ -40,6 +40,18 @@ class Settings(BaseSettings):
     # Security
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(11520, env="ACCESS_TOKEN_EXPIRE_MINUTES")  # 8 days
 
+    # Redis settings
+    REDIS_URL: str = Field("redis://localhost:6379/0", env="REDIS_URL")
+    REDIS_PASSWORD: Optional[str] = Field(None, env="REDIS_PASSWORD")
+    REDIS_DB: int = Field(0, env="REDIS_DB")
+    REDIS_MAX_CONNECTIONS: int = Field(10, env="REDIS_MAX_CONNECTIONS")
+    REDIS_SOCKET_TIMEOUT: int = Field(5, env="REDIS_SOCKET_TIMEOUT")
+    REDIS_SOCKET_CONNECT_TIMEOUT: int = Field(5, env="REDIS_SOCKET_CONNECT_TIMEOUT")
+
+    # Cache settings
+    CACHE_TTL: int = Field(3600, env="CACHE_TTL")  # 1 hour default
+    CACHE_ENABLED: bool = Field(True, env="CACHE_ENABLED")
+
     # OpenAI settings
     OPENAI_API_KEY: str = Field(..., env="OPENAI_API_KEY")
     OPENAI_MODEL: str = Field("gpt-3.5-turbo", env="OPENAI_MODEL")
