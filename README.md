@@ -2,6 +2,8 @@
 
 A production-ready FastAPI backend for the City Information Assistant, providing information about cities worldwide including weather, local time, and interesting facts.
 
+📋 **[View Complete Product Requirements Document (PRD)](PRD.md)**
+
 ## Features
 
 - **FastAPI** for high-performance async API endpoints
