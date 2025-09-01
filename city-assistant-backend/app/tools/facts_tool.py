@@ -12,6 +12,7 @@ from loguru import logger
 from pydantic import BaseModel, Field
 
 from app.core.config import settings
+from app.core.cache_decorator import cache_api_call
 from app.utils.exceptions import ToolExecutionError
 from app.utils.http_client import HTTPClient
 
@@ -247,6 +248,7 @@ class CityFactsTool(BaseTool):
         ]
         return facts
 
+    @cache_api_call(ttl=7200, key_prefix="city_facts")  # Cache for 2 hours
     async def _arun(
         self,
         city: str,

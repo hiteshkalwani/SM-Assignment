@@ -17,6 +17,7 @@ from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.core.observability import setup_langsmith
+from app.core.redis_client import redis_client
 from app.utils.exceptions import ErrorResponse
 from app.api.v1.router import api_router
 
@@ -35,10 +36,31 @@ async def lifespan(app: FastAPI):
     if settings.LANGCHAIN_TRACING_V2 and settings.LANGCHAIN_API_KEY:
         setup_langsmith()
 
+    # Initialize Redis connection
+    try:
+        if settings.CACHE_ENABLED:
+            # Test Redis connection
+            redis_health = await redis_client.health_check()
+            if redis_health:
+                logger.info("Redis connection established successfully")
+            else:
+                logger.warning("Redis connection failed - caching will be disabled")
+        else:
+            logger.info("Caching is disabled in configuration")
+    except Exception as e:
+        logger.error(f"Failed to initialize Redis: {e}")
+
     yield
 
     # Shutdown: Clean up resources
     logger.info("Shutting down...")
+    
+    # Close Redis connections
+    try:
+        await redis_client.close()
+        logger.info("Redis connections closed")
+    except Exception as e:
+        logger.error(f"Error closing Redis connections: {e}")
 
 
 def create_application() -> FastAPI:

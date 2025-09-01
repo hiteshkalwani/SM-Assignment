@@ -7,6 +7,7 @@ A production-ready FastAPI backend for the City Information Assistant, providing
 - **FastAPI** for high-performance async API endpoints
 - **LangChain** for LLM integration and tool orchestration
 - **Pydantic** for data validation and settings management
+- **Redis** for intelligent caching and performance optimization
 - **Async HTTP client** with retry logic and error handling
 - **LangSmith** integration for observability and tracing
 - **Streaming responses** for real-time chat interactions
@@ -20,6 +21,8 @@ A production-ready FastAPI backend for the City Information Assistant, providing
 
 - Python 3.9+
 - pip
+- Docker and Docker Compose (for containerized deployment)
+- Redis (for caching - included in Docker setup)
 - OpenAI API key
 - (Optional) OpenWeatherMap API key
 - (Optional) GeoDB API key
@@ -60,6 +63,13 @@ A production-ready FastAPI backend for the City Information Assistant, providing
    LANGCHAIN_API_KEY=your_langsmith_api_key
    LANGCHAIN_PROJECT=city-information-assistant
 
+   # Redis Configuration
+   REDIS_HOST=localhost
+   REDIS_PORT=6379
+   REDIS_DB=0
+   REDIS_PASSWORD=
+   REDIS_TTL=3600
+
    # App settings
    ENVIRONMENT=development
    DEBUG=true
@@ -91,6 +101,11 @@ docker-compose -f docker-compose.yml -f docker-compose.override.yml up -d
 ```
 
 The API will be available at `http://localhost:80` / `http://localhost` (via Nginx load balancer)
+
+**Services included:**
+- **Backend API**: City Information Assistant (3 replicas by default)
+- **Redis**: Caching layer for improved performance
+- **Nginx**: Load balancer and reverse proxy
 
 #### Direct Python Development
 
@@ -178,6 +193,8 @@ SM-Assignment/
 - `GET /health` - Check the health status of the service and its dependencies
 - `GET /docs` - Swagger UI
 
+The health check endpoint now includes Redis connectivity status to ensure the caching layer is operational.
+
 ### Chat
 
 - `POST /api/v1/chat` - Chat with the City Information Assistant
@@ -216,6 +233,43 @@ curl --location 'http://localhost:80/api/v1/chat/stream?message=plan%20my%20visi
 --data ''
 ```
 
+## Performance & Caching
+
+### Redis Integration
+
+The application uses Redis for intelligent caching to improve performance and reduce API costs:
+
+#### **Caching Strategy**
+- **Weather Data**: Cached for 30 minutes (1800s) - weather changes frequently
+- **Time Zone Data**: Cached for 2 hours (7200s) - time zones are relatively stable  
+- **City Facts**: Cached for 2 hours (7200s) - city information is mostly static
+- **Visit Planning**: Cached for 1 hour (3600s) - balances freshness with performance
+
+#### **Cache Benefits**
+- **🚀 Performance**: 10-100x faster response times for cached data
+- **💰 Cost Reduction**: Reduces external API calls and OpenAI token usage
+- **⚡ Scalability**: Shared cache across multiple backend replicas
+- **🛡️ Reliability**: Graceful fallback when cache is unavailable
+
+#### **Cache Configuration**
+```env
+# Redis settings in .env
+REDIS_HOST=redis          # Docker service name
+REDIS_PORT=6379          # Default Redis port
+REDIS_DB=0               # Database number
+REDIS_PASSWORD=          # Optional password
+REDIS_TTL=3600          # Default TTL in seconds
+```
+
+#### **Cache Keys**
+- Weather: `weather:{city}:{country}`
+- Time: `time:{city}:{country}`  
+- Facts: `city_facts:{city}:{country}`
+- Planning: `visit_plan:{city}:{country}`
+
+#### **Monitoring Cache Performance**
+The `/health` endpoint includes Redis connectivity and basic cache statistics.
+
 ## Deployment
 
 ### Docker with Nginx Load Balancing
@@ -229,6 +283,9 @@ Internet → Nginx (Port 80) → Load Balancer → Backend Service (3 Replicas)
                                           ├── city-assistant-backend (replica 1)
                                           ├── city-assistant-backend (replica 2)
                                           └── city-assistant-backend (replica 3)
+                                                         ↓
+                                                   Redis Cache
+                                              (Shared across replicas)
 ```
 
 #### Quick Start with Load Balancing

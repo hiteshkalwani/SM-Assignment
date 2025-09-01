@@ -1,6 +1,24 @@
 version: '3.8'
 
 services:
+  # Redis Cache Service
+  redis:
+    image: redis:7-alpine
+    container_name: city-assistant-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    restart: unless-stopped
+    networks:
+      - city-assistant-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
   # Nginx Load Balancer
   nginx:
     image: nginx:alpine
@@ -13,6 +31,7 @@ services:
       - ./nginx/logs:/var/log/nginx
     depends_on:
       - city-assistant-backend
+      - redis
     restart: unless-stopped
     networks:
       - city-assistant-network
@@ -24,11 +43,15 @@ services:
       - DEBUG=false
       - ENVIRONMENT=production
       - LOG_LEVEL=INFO
+      - REDIS_URL=redis://redis:6379/0
     env_file:
       - .env
     volumes:
       - ./city-assistant-backend/logs:/app/logs
     restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -50,6 +73,7 @@ services:
       - DEBUG=true
       - ENVIRONMENT=development
       - LOG_LEVEL=DEBUG
+      - REDIS_URL=redis://redis:6379/0
     env_file:
       - .env
     volumes:
@@ -57,6 +81,9 @@ services:
       - ./city-assistant-backend/logs:/app/logs
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
     networks:
       - city-assistant-network
     profiles:
@@ -65,3 +92,7 @@ services:
 networks:
   city-assistant-network:
     driver: bridge
+
+volumes:
+  redis_data:
+    driver: local
